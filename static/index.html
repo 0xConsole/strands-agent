@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeReview Sentinel — Strands Agents SDK</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        header { text-align: center; margin-bottom: 2rem; }
+        header h1 { font-size: 2.5rem; color: #58a6ff; margin-bottom: 0.5rem; }
+        header p { color: #8b949e; font-size: 1.1rem; }
+        .badge { display: inline-block; background: #1f6feb; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; margin: 0.25rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 1.5rem; }
+        .card h2 { color: #58a6ff; margin-bottom: 1rem; font-size: 1.3rem; }
+        .stat { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #21262d; }
+        .stat:last-child { border-bottom: none; }
+        .stat .label { color: #8b949e; }
+        .stat .value { color: #e6edf3; font-weight: 600; }
+        .severity-low { color: #3fb950; }
+        .severity-medium { color: #d29922; }
+        .severity-high { color: #db6d28; }
+        .severity-critical { color: #f85149; }
+        textarea { width: 100%; height: 200px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; color: #c9d1d9; font-family: monospace; font-size: 0.85rem; margin-bottom: 1rem; }
+        input[type="text"] { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 0.75rem; color: #c9d1d9; margin-bottom: 1rem; }
+        button { background: #238636; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600; }
+        button:hover { background: #2ea043; }
+        button:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+        .tools { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+        .tool { background: #21262d; border: 1px solid #30363d; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; }
+        .tool code { color: #79c0ff; }
+        #results { white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; max-height: 600px; overflow-y: auto; }
+        .section { margin-bottom: 1rem; }
+        .section h3 { color: #58a6ff; margin-bottom: 0.5rem; }
+        .finding { background: #21262d; border-left: 3px solid; padding: 0.75rem; margin: 0.5rem 0; border-radius: 0 8px 8px 0; }
+        .finding.critical { border-color: #f85149; }
+        .finding.high { border-color: #db6d28; }
+        .finding.medium { border-color: #d29922; }
+        .finding.low { border-color: #3fb950; }
+        .footer { text-align: center; margin-top: 2rem; color: #8b949e; font-size: 0.85rem; }
+        .footer a { color: #58a6ff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ CodeReview Sentinel</h1>
+            <p>Autonomous code review triage agent — powered by Strands Agents SDK</p>
+            <div>
+                <span class="badge">Strands SDK v1.51.0</span>
+                <span class="badge">Professional Agents Track</span>
+                <span class="badge">AWS Agents for Humans</span>
+            </div>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📊 Agent Status</h2>
+                <div id="agentStatus">
+                    <div class="stat"><span class="label">Agent</span><span class="value">CodeReview Sentinel</span></div>
+                    <div class="stat"><span class="label">SDK</span><span class="value">Strands Agents v1.51.0</span></div>
+                    <div class="stat"><span class="label">Tools</span><span class="value" id="toolCount">6</span></div>
+                    <div class="stat"><span class="label">Mode</span><span class="value" id="agentMode">Loading...</span></div>
+                </div>
+                <div class="tools" id="toolsList"></div>
+            </div>
+            <div class="card">
+                <h2>⚡ Quick Actions</h2>
+                <div style="text-align: center; padding: 1rem 0;">
+                    <button onclick="runDemo()" id="demoBtn">▶ Run Demo Review</button>
+                    <p style="margin-top: 0.5rem; color: #8b949e; font-size: 0.85rem;">Reviews a sample PR with security issues</p>
+                </div>
+                <div style="text-align: center; padding-top: 1rem; border-top: 1px solid #21262d;">
+                    <button onclick="checkHealth()" style="background: #1f6feb;">Check Health</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 2rem;">
+            <h2>📝 Submit Your Own PR Diff</h2>
+            <textarea id="diffInput" placeholder="Paste a unified diff here (e.g., git diff output)..."></textarea>
+            <input type="text" id="filePaths" placeholder="Comma-separated file paths (optional)" />
+            <input type="text" id="language" placeholder="Language: python, javascript, typescript, go (default: python)" />
+            <button onclick="runReview()" id="reviewBtn">🔍 Run Agent Review</button>
+        </div>
+
+        <div class="card" id="resultsCard" style="display: none;">
+            <h2>📋 Agent Results</h2>
+            <div id="results"></div>
+        </div>
+
+        <div class="footer">
+            <p>Built for <a href="https://agentsforhumans.devpost.com/">AWS Agents for Humans Hackathon</a> — Sep 14, 2026</p>
+            <p><a href="https://github.com/0xConsole/strands-agent">GitHub Repo</a> · <a href="/api/demo">Demo API</a> · <a href="/api/agent/status">Agent Status</a></p>
+        </div>
+    </div>
+
+    <script>
+        async function checkHealth() {
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                alert(`Status: ${data.status}\nAgent: ${data.agent}\nSDK: ${data.sdk}\nTools: ${data.tools}`);
+            } catch (e) { alert('Health check failed: ' + e.message); }
+        }
+
+        async function loadStatus() {
+            try {
+                const res = await fetch('/api/agent/status');
+                const data = await res.json();
+                document.getElementById('agentMode').textContent = data.fallback_mode ? 'Demo (tool orchestration)' : 'Live (LLM reasoning)';
+                document.getElementById('toolCount').textContent = data.tools.length;
+                const toolsList = document.getElementById('toolsList');
+                toolsList.innerHTML = data.tools.map(t => `<span class="tool"><code>${t.name}</code> — ${t.description}</span>`).join('');
+            } catch (e) { console.error('Status load failed:', e); }
+        }
+
+        async function runDemo() {
+            document.getElementById('demoBtn').disabled = true;
+            document.getElementById('demoBtn').textContent = '⏳ Running...';
+            try {
+                const res = await fetch('/api/demo');
+                const data = await res.json();
+                displayResults(data);
+            } catch (e) { alert('Demo failed: ' + e.message); }
+            document.getElementById('demoBtn').disabled = false;
+            document.getElementById('demoBtn').textContent = '▶ Run Demo Review';
+        }
+
+        async function runReview() {
+            const diff = document.getElementById('diffInput').value.trim();
+            if (!diff) { alert('Please paste a diff first'); return; }
+            document.getElementById('reviewBtn').disabled = true;
+            document.getElementById('reviewBtn').textContent = '⏳ Analyzing...';
+            try {
+                const res = await fetch('/api/review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        diff_content: diff,
+                        file_paths: document.getElementById('filePaths').value,
+                        language: document.getElementById('language').value || 'python',
+                    }),
+                });
+                const data = await res.json();
+                displayResults(data);
+            } catch (e) { alert('Review failed: ' + e.message); }
+            document.getElementById('reviewBtn').disabled = false;
+            document.getElementById('reviewBtn').textContent = '🔍 Run Agent Review';
+        }
+
+        function displayResults(data) {
+            document.getElementById('resultsCard').style.display = 'block';
+            const r = document.getElementById('results');
+
+            let html = `
+                <div class="section"><h3>Agent</h3><p>${data.agent_name} — ${data.sdk}</p></div>
+                <div class="section"><h3>Tools Used (${data.tools_used.length})</h3>
+                    <div class="tools">${data.tools_used.map(t => `<span class="tool"><code>${t}</code></span>`).join('')}</div>
+                </div>
+                <div class="section"><h3>📊 Diff Analysis</h3>
+                    <div class="stat"><span class="label">Lines Added</span><span class="value">${data.analysis.lines_added}</span></div>
+                    <div class="stat"><span class="label">Lines Removed</span><span class="value">${data.analysis.lines_removed}</span></div>
+                    <div class="stat"><span class="label">Files Changed</span><span class="value">${data.analysis.files_changed}</span></div>
+                    <div class="stat"><span class="label">Complexity</span><span class="value">${data.analysis.complexity} (${data.analysis.complexity_score}/4)</span></div>
+                </div>
+                <div class="section"><h3>⚠️ Severity: <span class="severity-${data.severity.severity}">${data.severity.severity.toUpperCase()}</span></h3>
+                    <p>${data.severity.recommendation}</p>
+            `;
+            if (data.severity.risk_factors.length > 0) {
+                html += '<ul style="margin-top:0.5rem;">';
+                data.severity.risk_factors.forEach(rf => { html += `<li>${rf}</li>`; });
+                html += '</ul>';
+            }
+            html += '</div>';
+
+            html += `<div class="section"><h3>🛡️ Security Scan (${data.security.total_findings} findings — ${data.security.overall_risk})</h3>`;
+            if (data.security.vulnerabilities.length > 0) {
+                data.security.vulnerabilities.forEach(v => {
+                    html += `<div class="finding ${v.severity}"><strong>${v.severity.toUpperCase()}</strong>: ${v.description}<br><code>${v.code_snippet}</code></div>`;
+                });
+            } else { html += '<p>✅ No security vulnerabilities found</p>'; }
+            html += '</div>';
+
+            html += `<div class="section"><h3>📐 Style Check (${data.style.compliance_score}% compliant)</h3>`;
+            if (data.style.issues.length > 0) {
+                data.style.issues.forEach(s => {
+                    html += `<div class="finding low">${s.line}<br><code>${s.code}</code></div>`;
+                });
+            } else { html += '<p>✅ No style issues found</p>'; }
+            html += '</div>';
+
+            html += `<div class="section"><h3>💬 Review Comment</h3><pre style="background:#21262d;padding:1rem;border-radius:8px;white-space:pre-wrap;">${data.review_comment.comment}</pre></div>`;
+            html += `<div class="section"><h3>📋 PR Summary</h3><pre style="background:#21262d;padding:1rem;border-radius:8px;white-space:pre-wrap;">${data.pr_summary.summary}</pre></div>`;
+
+            r.innerHTML = html;
+            r.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        loadStatus();
+    </script>
+</body>
+</html>
