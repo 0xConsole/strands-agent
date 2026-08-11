@@ -441,6 +441,8 @@ Be concise, specific, and actionable. Every finding should help the reviewer mak
 # Create the Strands Agent with all tools
 # In production, this uses a real LLM (Bedrock/OpenAI/Ollama)
 # In demo mode, the agent falls back to direct tool calls
+agent = None
+_agent_error = None
 try:
     agent = Agent(
         tools=[analyze_diff, classify_severity, check_style, security_scan, generate_review_comment, draft_pr_summary],
@@ -448,7 +450,6 @@ try:
     )
 except Exception as e:
     # Fallback: create agent without a model (tool-only mode for demo)
-    agent = None
     _agent_error = str(e)
 
 
